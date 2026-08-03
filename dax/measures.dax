@@ -1,0 +1,80 @@
+// SignalSense — Core DAX Measures
+
+Total Customers = 
+COUNTROWS(Customers)
+
+Churned Customers = 
+CALCULATE(
+    COUNTROWS(Customers),
+    Customers[churn] = "Yes"
+)
+
+Churn Rate % = 
+DIVIDE([Churned Customers], [Total Customers], 0) * 100
+
+Retained Customers = 
+[Total Customers] - [Churned Customers]
+
+Retention Rate % = 
+100 - [Churn Rate %]
+
+Avg Monthly Charges = 
+AVERAGE(Customers[monthly_charges])
+
+Avg Monthly Charges (Churned) = 
+CALCULATE(
+    AVERAGE(Customers[monthly_charges]),
+    Customers[churn] = "Yes"
+)
+
+Avg Tenure (Months) = 
+AVERAGE(Customers[tenure_months])
+
+Avg Tenure (Churned) = 
+CALCULATE(
+    AVERAGE(Customers[tenure_months]),
+    Customers[churn] = "Yes"
+)
+
+Total Revenue at Risk = 
+CALCULATE(
+    SUM(Customers[monthly_charges]),
+    Customers[churn] = "Yes"
+)
+
+// Churn rate broken out by contract type — used in segment comparison visuals
+Churn Rate by Contract = 
+DIVIDE(
+    CALCULATE([Churned Customers], ALLEXCEPT(Customers, Customers[contract_type])),
+    CALCULATE([Total Customers], ALLEXCEPT(Customers, Customers[contract_type])),
+    0
+) * 100
+
+// High-risk flag — customers under 6 months tenure on month-to-month contracts
+// with no tech support are the highest documented churn-risk cohort
+High Risk Customer Count = 
+CALCULATE(
+    COUNTROWS(Customers),
+    Customers[tenure_cohort] = "0-6 months",
+    Customers[contract_type] = "Month-to-month",
+    Customers[tech_support] = "No"
+)
+
+High Risk Churn Rate % = 
+VAR HighRiskTotal =
+    CALCULATE(
+        COUNTROWS(Customers),
+        Customers[tenure_cohort] = "0-6 months",
+        Customers[contract_type] = "Month-to-month",
+        Customers[tech_support] = "No"
+    )
+VAR HighRiskChurned =
+    CALCULATE(
+        COUNTROWS(Customers),
+        Customers[tenure_cohort] = "0-6 months",
+        Customers[contract_type] = "Month-to-month",
+        Customers[tech_support] = "No",
+        Customers[churn] = "Yes"
+    )
+RETURN
+    DIVIDE(HighRiskChurned, HighRiskTotal, 0) * 100
